@@ -6,10 +6,10 @@ which can be helpful in determining a tech stack,
 or just seeing what's popular.
 
 ## Setup
-
+0. Clone this repo.
 1. Install dependencies using NPM, `npm install`
 2. Compile using `tsc` or `npm run build`
-3. Add a new [Github Personal Token](https://github.com/settings/tokens) to a `.env` file:
+3. Add a new [Github Personal Token](https://github.com/settings/tokens) to an `.env` file at the root of this repo:
 ```
 TOKEN="YOUR_TOKEN_HERE"
 ```
@@ -27,4 +27,4 @@ npm run analyze -- Sammy99jsp Fireship
 ```
 
 ## Output
-You should find the output in  ``
+You should find the output in an `output` folder.
