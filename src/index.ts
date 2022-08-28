@@ -10,7 +10,11 @@ const app = new Octokit({
   auth: process.env.TOKEN,
 });
 
-
+/**
+ * Reduces array of Language objects into one object
+ * @param arr Array of {[k : string] : number}'s
+ * @returns Single Object, with identical keys' values summed 
+ */
 const reduceLangObj = arr => arr.reduce((obj, l) => {
   let tmp = {...obj};
 
@@ -20,6 +24,11 @@ const reduceLangObj = arr => arr.reduce((obj, l) => {
   return tmp;
 }, {});
 
+/**
+ * Gets the Languages used in this 50 of this user's repos
+ * @param username GitHub username
+ * @returns Object of Language => Total Bytes in all the user's repos 
+ */
 async function getLangs(username : string) {
   let {data: repos} = await app.repos.listForUser({username, per_page: 50, type: "owner"});
 
@@ -38,6 +47,7 @@ async function getLangs(username : string) {
 }
 
 async function main() {
+  // Get Languages of the users passed as arguments.
   const LANGS = await Promise.all(
     process.argv.slice(2)
       .map(async name => ({
@@ -51,18 +61,22 @@ async function main() {
     {recursive: true}
   );
 
+  // Write raw language bytes per user. 
+
   await fs.writeFile(
     "./output/by_name.json",
     JSON.stringify(LANGS, null, 3)
   );
 
-  let lines = reduceLangObj(LANGS.map(({langs}) => langs))
+  // Add all the bytes up for another metric
+  let accumulated = reduceLangObj(LANGS.map(({langs}) => langs))
 
   await fs.writeFile(
     "./output/total.json",
-    JSON.stringify(lines, null, 3)
+    JSON.stringify(accumulated, null, 3)
   );
 
+  // Calculate the % breakdown of each language per user 
   const PERCENT_PER_USER = LANGS.map(({langs, name}) =>{
     const TOTAL = Object.values(langs).reduce((a : number, b : number) => a + b, 0) as number
     
@@ -81,8 +95,9 @@ async function main() {
   );
 
 
-  // Calculate total scores by taking a log base 5 of the user's total lines
-
+  // Calculate total scores for the entire group,
+  // and weight it by the log base 5 of each user's total bytes
+  // then sum
   const WEIGHTED_TOTAL = PERCENT_PER_USER.map(
     ({TOTAL, langs}) => 
       Object.entries(langs)
@@ -90,8 +105,7 @@ async function main() {
         .reduce((obj, a) => ({...obj, ...a}), {})
   );
 
-
-
+  // Sort in ascending order
   let pre = Object.entries(reduceLangObj(WEIGHTED_TOTAL))
     .map(([k, v] : [string, number]) => ({[k] : Math.floor(v * 100) / 100}));
 
@@ -100,6 +114,7 @@ async function main() {
     return v1 - v2;
   });
 
+  // Write to output, filtering out < 0.5%'s
   await fs.writeFile(
     "./output/weighted.json",
     JSON.stringify(
@@ -113,7 +128,5 @@ async function main() {
     )
   );
 }
-
-// main()
 
 main()
